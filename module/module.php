@@ -8,6 +8,8 @@ if ($args->command == "parse") {
 
 	$command = $args->args;
 
+	die(var_dump($command));
+
 	switch ($command[0]) {
 		
 		case "list":
@@ -15,6 +17,7 @@ if ($args->command == "parse") {
 			switch ($command[1]) {
 
 				case "clients":
+
 
 					if( $rows = $SqlDatabase->fetchObjects( '
 						SELECT *
@@ -39,24 +42,14 @@ if ($args->command == "parse") {
 				    break;
 
 				default:
-					die("No list command given");
+					die("fail<!--separate-->No list command given");
 					break;
 			
-			}
-			break;
-		
-		case "bill":
-			
-			die("in bill");
-			$commandData = $args->args[1];
-			if( !$commandData ) {
-				die("fail<!--separate-->no data in parse command");
 			}
 			break;
 
 		default:
 			die("Command not recognized");
-
 	}
 }
 

@@ -48,7 +48,7 @@ let shiftWeek = function( shift ) {
 
 let parseCommand = function ( str ) {
     let args = str.split(" ");
-    console.log(args);
+    //console.log(args);
 
     // any input error correction here if needed
 

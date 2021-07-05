@@ -11,12 +11,13 @@ CREATE TABLE IF NOT EXISTS TimeChargeClients(
 
 INSERT INTO TimeChargeClients(
     UserID,
-    Name
-)
+    Name,
+    Code
+g)
 VALUES
-    (1,"OnlineDistributeur"),
-    (1,"HealthPath"),
-    (1,"Friend");
+    (1,"OnlineDistributeur", "OD"),
+    (1,"HealthPath", "HP"),
+    (1,"Friend", "FD");
 
 CREATE TABLE IF NOT EXISTS TimeChargeProjects(
     ID bigint(20) auto_increment NOT NULL,
@@ -48,6 +49,8 @@ CREATE TABLE IF NOT EXISTS TimeCharges(
     TimeFrom datetime,
     TimeTo datetime,
     Note VARCHAR(128),
+    Percentage DOUBLE(5, 4) DEFAULT 1.0000,
+    Status VARCHAR(10),
     ProjectID bigint(20),
     PRIMARY KEY(ID),
     FOREIGN KEY(ProjectID) 
@@ -55,4 +58,43 @@ CREATE TABLE IF NOT EXISTS TimeCharges(
         ON DELETE SET NULL
         ON UPDATE CASCADE   
 );
+
+INSERT INTO TimeCharges(
+    UserID,
+    TimeFrom,
+    TimeTo,
+    Note,
+    Percentage,
+    Status,
+    ProjectID
+)
+VALUES
+    (1, "2021-07-01 12:00:00", "2021-07-01 13:00:00", "some note", 1.0000, "CLOSED", 2);
+
+
+INSERT INTO TimeCharges(
+    UserID,
+    TimeFrom,
+    Status,
+    ProjectID
+)
+VALUES
+    (1, "2021-07-03 12:00:00", "OPEN", 2);
+
+UPDATE TimeCharges
+SET 
+    TimeTo = "2021-07-03 13:00:00", 
+    Status = "CLOSED", 
+    NOTE = "some note added on this job"
+WHERE ID = 2;
+
+
+INSERT INTO TimeCharges(
+    UserID,
+    TimeFrom,
+    Status,
+    ProjectID
+)
+VALUES
+    (1, "2021-07-04 12:00:00", "OPEN", 2);
 
