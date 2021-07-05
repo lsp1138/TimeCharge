@@ -10,22 +10,11 @@ Application.run = function ( msg ) {
         Application.quit();   
     }
     
-    v.onLoad = function (){
-        log.console('start messing about');
-        // go to function in view 
-        // set event listeners
-        // load database
-        // set globals
-        // set focus to input field
-    }
-    
-    
     let f = new File('Progdir:Assets/main.html');
     f.onLoad = function( data ){
         v.setContent( data );
     }
-    f.load();
-    
+    f.load();  
 }
 
 

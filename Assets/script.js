@@ -1,71 +1,73 @@
 Application.run = function ( msg ) {
-    
-    
-    ge('cmdLine').addEventListener('keydown', function (event) {
+
+
+    // Add key listener for input field
+    ge( 'cmdLine' ).addEventListener( 'keydown' , function (event) {
         if ( event.which==13 ) {
-            ParseCommand(this.value);
+            parseCommand(this.value);
             this.value = '';
         }
     });
-    
-    // set globals
-    SetTimeColumn( 6, 0, 22);
+
+    // Set date todays date
+    let chosenDate = new Date()
+    setDateBar( chosenDate );
+
+    // Calendar properties
+    let start_hr = 6;
+    let start_min = 0;
+    let end_hr = 22;
+
+    // Initialize default view
+    SetTimeColumn( start_hr, start_min, end_hr);
     PlaceRecord("OD", "Shopsync", "5 / 6", [9,40], [14,30], 6, 0);
     PlaceRecord("HP", "Order project", "4 / 5", [10,20], [12, 30], 6, 0);
-    
 }
 
+// set a project bar 
 
-function ParseCommand(command){
-    // call back after parseCommand
+let setDateBar = function( chargeDate, shiftDays=0 ) {
     
+    let dateStr = chargeDate.toLocaleDateString('en-NO', {
+        weekday: 'short', // "Sat"
+        month: 'short', // "June"
+        day: '2-digit', // "01"
+        year: 'numeric' // "2019"
+    });
     
-    listProjects();
-    
-    //SendRecord(data);
-    // parse the command
-    // if then else split
-    // define data......{ } 
-    // sendRecord ( data )
+    console.log(dateStr);
+
+    ge( 'dateBar' ).innerHTML = "<span onClick='shiftWeek(-1)'> <b><<</b> </span>" + 
+        dateStr + "<span onClick='shiftWeek(+1)'> <b>>></b> </span>";
+
 }
 
-
-
-function listProjects(){
-    dbQuery(
-        'fetch', {
-            sql: 'SELECT c.Name as Client, p.Name as Project \
-                  FROM TimeChargeClients c \
-                  INNER JOIN TimeChargeProjects p \
-                  ON c.ID = p.ClientID \
-                  GROUP BY c.Name, p.Name'
-        }, function ( data ) {
-            dataJson = JSON.parse(data);
-            let str = 'Clients and Projects';
-            for(let a=0; a<dataJson.length; a++){
-                 str += '<br>' + dataJson[a].Client + 
-                        ' ' + dataJson[a].Project ;
-            }
-            ge( 'output' ).innerHTML = str;
-        } 
-    );
+let shiftWeek = function( shift ) {
+    console.log(shift);    
 }
 
-function dbQuery(command, sql, success, fail){
-    let m = new Module( 'timecharge' );
-    m.onExecuted = function ( code, data ){
-        if ( code == 'ok' ) {
-            if ( success && typeof(success) == "function" ) {
-                success( data );
-            }
+let parseCommand = function ( str ) {
+    let args = str.split(" ");
+    console.log(args);
+
+    // any input error correction here if needed
+
+    let m = new Module('timecharge');
+    m.onExecuted = function ( code, data ) {
+        if ( code == "ok" ) {
+            printOut( data );
+        } else {
+            console.log( "in else ", code, data );
         }
-        else if ( fail && typeof(fail) == "function" ) {
-            fail( data );
-        }
-    };
-    m.execute( command, sql );
+    }
+    m.execute( 'parse', args );
 }
 
+
+
+function printOut( str ) {
+    ge( 'output' ).innerHTML = str;
+}
 
 function SetTimeColumn( start_hr, end_hr)
 {
