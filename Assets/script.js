@@ -54,19 +54,47 @@ let parseCommand = function ( str ) {
 
     let m = new Module('timecharge');
     m.onExecuted = function ( code, data ) {
-        if ( code == "ok" ) {
-            printOut( data );
+        if ( code == "list" ) {
+            console.log("in list");
+            ge( 'output' ).innerHTML = "";
+            ge( 'output' ).appendChild(
+                generateTable( JSON.parse(data) )
+            );
+        } else if (code=="ok") {
+            console.log("in ok");
+            ge( 'output').innerHTML = data;
         } else {
-            console.log( "in else ", code, data );
+            console.log(code, data);
         }
     }
     m.execute( 'parse', args );
 }
 
+function generateTable( data ){
 
+    table = document.createElement("table");
 
-function printOut( str ) {
-    ge( 'output' ).innerHTML = str;
+    // create header
+    let thead = table.createTHead();
+    let row = thead.insertRow();
+    for (let key of Object.keys(data[0]) ) {
+        let th = document.createElement("th");
+        let text = document.createTextNode(key);
+        th.appendChild(text);
+        row.appendChild(th);
+    }
+
+    // create table
+    for (let element of data) {
+        let row = table.insertRow();
+        for (key in element) {
+            let cell = row.insertCell();
+            let text = document.createTextNode(element[key]);
+            cell.appendChild(text);
+        }
+    }
+
+    return table;
 }
 
 function SetTimeColumn( start_hr, end_hr)

@@ -2,6 +2,7 @@ CREATE TABLE IF NOT EXISTS TimeChargeClients(
     ID bigint(20) auto_increment NOT NULL,
     UserID bigint(20) NOT NULL,
     Name VARCHAR(60),
+    Code VARCHAR(2),
     Email VARCHAR(128),
     ContactNumber VARCHAR(32),
     Address VARCHAR(255),

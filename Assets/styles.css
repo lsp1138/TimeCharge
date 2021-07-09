@@ -24,7 +24,9 @@
 }
 
 .textOutput {
-  height: 23vh;
+  font-size: 10%;
+  overflow-y: scroll;
+  height: 30vh;
   border: thin solid gray;
   color: gray;
   margin: 10px 0 0 0;
@@ -38,7 +40,7 @@
 }
 
 .textInput {
-  height: 7vh;
+  height: 5vh;
   border: thin solid gray;
   margin: 0 0 5px 0;
 }
