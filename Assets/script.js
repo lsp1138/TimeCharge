@@ -18,13 +18,51 @@ Application.run = function ( msg ) {
     let start_min = 0;
     let end_hr = 22;
 
+
+    refreshRecords();
+
     // Initialize default view
     SetTimeColumn( start_hr, start_min, end_hr);
-    PlaceRecord("OD", "Shopsync", "5 / 6", [9,40], [14,30], 6, 0);
-    PlaceRecord("HP", "Order project", "4 / 5", [10,20], [12, 30], 6, 0);
+
+    let test = {
+        "Client": "TestClient",
+        "Project": "TestProject",
+        "timeFromParsed": {
+            "hour": 14,
+            "min": 10
+        },
+        "timeToParsed": {
+            "hour": 16,
+            "min": 35
+        },
+        "day": 4
+    }
+    PlaceRecord(test, start_hr, start_min);
+    // PlaceRecord("HP", "Order project", "4 / 5", [10,20], [12, 30], 6, 0);
 }
 
 // set a project bar 
+
+let refreshRecords = function () {
+    // get all this weeks (by default) records
+    let m = new Module("timecharge");
+    m.onExecuted = function (code, data) {
+        if ( code=="ok" ) {
+            // console.log(data);
+            jData = JSON.parse(data);
+            console.log(code, jData);
+            for(let i=0; i < jData.length; i++){
+                //console.log(jData[i].Client, jData[i].Project, jData[i].timeToParsed.hour, jData[i].timeFromParsed.hour);
+                PlaceRecord(jData[i], 6, 0 );
+            }
+
+        } else {
+            console.log(code, data);
+        }
+    }
+    m.execute('getcharges');
+}
+
 
 let setDateBar = function( chargeDate, shiftDays=0 ) {
     
@@ -116,18 +154,46 @@ function SetTimeColumn( start_hr, end_hr)
     }
 }
 
-function PlaceRecord(client, description, day, 
-                     start, end, start_hr, start_min) {
+//PlaceRecord("OD", "Shopsync", "5 / 6", [9,40], [14,30], 6, 0);
+
+function PlaceRecord(data, cal_start_hr, cal_start_min) {
+  
+    let weekMap = [ 
+        "3 / 4",
+        "4 / 5",
+        "5 / 6",
+        "6 / 7",
+        "7 / 8",
+        "8 / 9",
+        "9 / 10"
+    ];
+
     record = document.createElement("div");
-    let total_hrs = (
-            end[0] - start[0] + (end[1] - start[1])/60
+    // caluclate total hours
+
+    let startHr = data.timeFromParsed.hour;
+    let endHr = data.timeToParsed.hour;
+
+    let startMin = data.timeFromParsed.minute;
+    let endMin = data.timeToParsed.minute;
+
+    let day = data.day;
+
+    console.log(data);
+
+    let duration = (
+            (endHr - startHr)  + (endMin - startMin)/60
         ).toFixed(2) + " hours";
-    record.innerHTML = client + " " + 
-        description + " " + total_hrs;
+
+    record.innerHTML = data.Client + " " + data.Project + " " + duration;
     record.classList.add("record");
-    record.style['grid-column'] = day;
-    record.style['grid-row'] = TimeToGrid(start[0],start[1],start_hr, start_min) + 
-    " / " + TimeToGrid(end[0],end[1], start_hr, start_min);
+    console.log(weekMap[day-1]);
+    record.style['grid-column'] = weekMap[day-1];
+
+    let startGrid = TimeToGrid(startHr,startMin,cal_start_hr, cal_start_min);
+    let endGrid = TimeToGrid(endHr,endMin, cal_start_hr, cal_start_min);
+
+    record.style['grid-row'] = startGrid + " / " + endGrid;
     chart.appendChild(record);
 }
 

@@ -4,6 +4,52 @@ global $args, $SqlDatabase, $User, $Logger;
 
 require( 'php/friend.php' );
 
+if ($args->command == "getcharges") {
+	
+
+	$startDate = strtotime('monday this week');
+	$endDate = strtotime('monday next week');
+
+	//die(date('Y-m-d H:i:s', $startDate) . " " .date('Y-m-d H:i:s', $endDate) );
+
+	$str = 'SELECT cc.TimeFrom as TimeFrom,
+		    cc.TimeTo as TimeTo,
+		    p.Name as Project,
+		    c.Code as Client
+			FROM TimeCharges cc
+			INNER JOIN TimeChargeProjects p
+			ON cc.ProjectID = p.ID
+			INNER JOIN TimeChargeClients c
+			ON c.ID = p.ClientID
+			WHERE TimeFrom>= \'' . date('Y-m-d H:i:s', $startDate) . '\' 
+				AND TimeFrom<= \'' . date('Y-m-d H:i:s', $endDate) . '\' 
+		  		AND TimeTo>= \'' . date('Y-m-d H:i:s', $startDate) . '\'
+		  		AND TimeTo<= \'' . date('Y-m-d H:i:s', $endDate) . '\' 
+		  		AND cc.UserID = \'' . $User->ID . '\'';
+
+	if( $rows = $SqlDatabase->fetchObjects( $str ) )
+	{
+		$resultArray = array();
+		foreach($rows as $row){
+			$rowArray = array();
+			$rowArray['Project'] = $row->Project;
+			$rowArray['Client'] = $row->Client;
+			$rowArray['timeToParsed'] = date_parse($row->TimeTo);
+			$rowArray['timeFromParsed'] = date_parse($row->TimeFrom);
+			$rowArray['day'] = (int)date('N', strtotime($row->TimeFrom));
+			$rowArray['date'] = $row->TimeFrom;
+
+			// timeTo->format("Y-m-d H:i:s");
+			array_push($resultArray, $rowArray);
+ 			//die(print_r($rowArray, 1));
+   		}
+		die( 'ok<!--separate-->' . json_encode($resultArray) );
+	}
+
+}
+
+
+
 if ($args->command == "parse") {
 
 	$command = $args->args;
@@ -11,6 +57,35 @@ if ($args->command == "parse") {
 	switch ($command[0]) {
 		
 		// list
+
+		case "getcharges":
+			
+
+			$startDate = strtotime('monday this week');
+			$endDate = strtotime('monday next week');
+
+			//die(date('Y-m-d H:i:s', $startDate) . " " .date('Y-m-d H:i:s', $endDate) );
+
+			$str = 'SELECT cc.TimeFrom as TimeFrom,
+				    cc.TimeTo as TimeTo,
+				    p.Name as projectName,
+				    c.Code as clientCode
+					FROM TimeCharges cc
+					INNER JOIN TimeChargeProjects p
+					ON cc.ProjectID = p.ID
+					INNER JOIN TimeChargeClients c
+					ON c.ID = p.ClientID
+					WHERE TimeFrom>= \'' . date('Y-m-d H:i:s', $startDate) . '\' 
+						AND TimeFrom<= \'' . date('Y-m-d H:i:s', $endDate) . '\' 
+				  		AND TimeTo>= \'' . date('Y-m-d H:i:s', $startDate) . '\'
+				  		AND TimeTo<= \'' . date('Y-m-d H:i:s', $endDate) . '\' 
+				  		AND cc.UserID = \'' . $User->ID . '\'';
+
+ 			if( $rows = $SqlDatabase->fetchObjects( $str ) )
+			{
+				die( 'list<!--separate-->' . json_encode( $rows ) );
+			}
+			break;	
 
 		case "list":
 
