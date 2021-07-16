@@ -1,3 +1,33 @@
+// Calendar properties
+let start_hr = 7;
+let end_hr = 18;
+let total_hr = end_hr - start_hr;
+
+let weekMap = [ 
+    "3 / 4",
+    "4 / 5",
+    "5 / 6",
+    "6 / 7",
+    "7 / 8",
+    "8 / 9",
+    "9 / 10"
+];
+
+let colorMap = [[ 
+    "#b3e2cd",
+    "#fdcdac",
+    "#cbd5e8",
+    "#f4cae4",
+    "#e6f5c9"
+],[
+    "#f0f9e8",
+    "#bae4bc",
+    "#7bccc4",
+    "#43a2ca",
+    "#0868ac"
+]];
+
+
 Application.run = function ( msg ) {
 
 
@@ -13,32 +43,12 @@ Application.run = function ( msg ) {
     let chosenDate = new Date()
     setDateBar( chosenDate );
 
-    // Calendar properties
-    let start_hr = 6;
-    let start_min = 0;
-    let end_hr = 22;
 
-
-    refreshRecords();
 
     // Initialize default view
-    SetTimeColumn( start_hr, start_min, end_hr);
-
-    let test = {
-        "Client": "TestClient",
-        "Project": "TestProject",
-        "timeFromParsed": {
-            "hour": 14,
-            "min": 10
-        },
-        "timeToParsed": {
-            "hour": 16,
-            "min": 35
-        },
-        "day": 4
-    }
-    PlaceRecord(test, start_hr, start_min);
-    // PlaceRecord("HP", "Order project", "4 / 5", [10,20], [12, 30], 6, 0);
+    SetTimeColumn( start_hr, end_hr );
+    refreshRecords();
+    
 }
 
 // set a project bar 
@@ -47,20 +57,39 @@ let refreshRecords = function () {
     // get all this weeks (by default) records
     let m = new Module("timecharge");
     m.onExecuted = function (code, data) {
-        if ( code=="ok" ) {
+        if ( code=="refresh" ) {
             // console.log(data);
             jData = JSON.parse(data);
-            console.log(code, jData);
+            //console.log(code, jData);
+            let daySum = [
+                0,0,0,0,0,0,0
+            ];
             for(let i=0; i < jData.length; i++){
                 //console.log(jData[i].Client, jData[i].Project, jData[i].timeToParsed.hour, jData[i].timeFromParsed.hour);
-                PlaceRecord(jData[i], 6, 0 );
+                daySum[jData[i].day-1] += jData[i].duration;
+                console.log( jData[i] );
+                PlaceRecord( jData[i], start_hr, 0 );
             }
+
+            PlaceSums(daySum);
 
         } else {
             console.log(code, data);
         }
     }
     m.execute('getcharges');
+}
+
+let PlaceSums = function ( daySum ) {
+    let chart = document.getElementById('chart');
+    for ( let i=0; i < daySum.length; i++) {
+        div = document.createElement('div');
+        div.classList.add("daysum");
+        div.innerHTML = daySum[i].toFixed(1);
+        div.style['grid-column'] = weekMap[i];
+        div.style['grid-row'] = total_hr * 60 + " / " + total_hr * 60 + 1;
+        chart.appendChild(div);
+    }
 }
 
 
@@ -73,7 +102,7 @@ let setDateBar = function( chargeDate, shiftDays=0 ) {
         year: 'numeric' // "2019"
     });
     
-    console.log(dateStr);
+    //console.log(dateStr);
 
     ge( 'dateBar' ).innerHTML = "<span onClick='shiftWeek(-1)'> <b><<</b> </span>" + 
         dateStr + "<span onClick='shiftWeek(+1)'> <b>>></b> </span>";
@@ -81,7 +110,7 @@ let setDateBar = function( chargeDate, shiftDays=0 ) {
 }
 
 let shiftWeek = function( shift ) {
-    console.log(shift);    
+    console.log("shitweek");
 }
 
 let parseCommand = function ( str ) {
@@ -98,15 +127,21 @@ let parseCommand = function ( str ) {
             ge( 'output' ).appendChild(
                 generateTable( JSON.parse(data) )
             );
-        } else if (code=="ok") {
-            console.log("in ok");
-            ge( 'output').innerHTML = data;
+            refreshRecords();
+        } else if (code=="refresh") {
+            console.log("in refreshSchedule");
+            //console.log(data);
+            ge( 'output' ).innerHTML = "";
+            UpdateSchedule(data);
         } else {
+            console.log('in else')
             console.log(code, data);
         }
     }
     m.execute( 'parse', args );
 }
+
+
 
 function generateTable( data ){
 
@@ -137,10 +172,13 @@ function generateTable( data ){
 
 function SetTimeColumn( start_hr, end_hr)
 {
-    let total_hr = end_hr - start_hr;
-    chart = document.getElementById('chart');
+ 
+    let chart = document.getElementById('chart');
+
+    chart.style['grid-template-rows'] = "10% repeat( " + total_hr * 60 + ", 1fr) 5%";
     
     for(let i=1; i<=total_hr; i++){
+        let chld = document.createElement('div');
         let hr = start_hr + (i - 1);
         chld.innerHTML = hr + ":00";
         chld.classList.add("time_row");
@@ -154,46 +192,42 @@ function SetTimeColumn( start_hr, end_hr)
     }
 }
 
-//PlaceRecord("OD", "Shopsync", "5 / 6", [9,40], [14,30], 6, 0);
+function UpdateSchedule( data ){
+    //jData = JSON.parse(data);
+    //console.log(code, jData);
+    for(let i=0; i < jData.length; i++){
+        //console.log(jData[i].Client, jData[i].Project, jData[i].timeToParsed.hour, jData[i].timeFromParsed.hour);
+        PlaceRecord(jData[i], start_hr, 0 );
+    }
+}
+
 
 function PlaceRecord(data, cal_start_hr, cal_start_min) {
   
-    let weekMap = [ 
-        "3 / 4",
-        "4 / 5",
-        "5 / 6",
-        "6 / 7",
-        "7 / 8",
-        "8 / 9",
-        "9 / 10"
-    ];
+    let chart = document.getElementById('chart');
+
+  
+
 
     record = document.createElement("div");
     // caluclate total hours
 
     let startHr = data.timeFromParsed.hour;
     let endHr = data.timeToParsed.hour;
-
     let startMin = data.timeFromParsed.minute;
     let endMin = data.timeToParsed.minute;
-
     let day = data.day;
+    let duration = data.duration.toFixed(1) + "(h)";
 
-    console.log(data);
-
-    let duration = (
-            (endHr - startHr)  + (endMin - startMin)/60
-        ).toFixed(2) + " hours";
-
-    record.innerHTML = data.Client + " " + data.Project + " " + duration;
+    record.innerHTML = data.Client + " " + duration;
     record.classList.add("record");
-    console.log(weekMap[day-1]);
     record.style['grid-column'] = weekMap[day-1];
 
     let startGrid = TimeToGrid(startHr,startMin,cal_start_hr, cal_start_min);
     let endGrid = TimeToGrid(endHr,endMin, cal_start_hr, cal_start_min);
 
     record.style['grid-row'] = startGrid + " / " + endGrid;
+    record.style['background-color'] = colorMap[1][data.ClientID];
     chart.appendChild(record);
 }
 

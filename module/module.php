@@ -15,7 +15,8 @@ if ($args->command == "getcharges") {
 	$str = 'SELECT cc.TimeFrom as TimeFrom,
 		    cc.TimeTo as TimeTo,
 		    p.Name as Project,
-		    c.Code as Client
+		    c.Code as Client,
+		    c.ID as ClientID
 			FROM TimeCharges cc
 			INNER JOIN TimeChargeProjects p
 			ON cc.ProjectID = p.ID
@@ -34,8 +35,12 @@ if ($args->command == "getcharges") {
 			$rowArray = array();
 			$rowArray['Project'] = $row->Project;
 			$rowArray['Client'] = $row->Client;
+			$rowArray['ClientID'] = $row->ClientID;
 			$rowArray['timeToParsed'] = date_parse($row->TimeTo);
 			$rowArray['timeFromParsed'] = date_parse($row->TimeFrom);
+			$rowArray['duration'] =  
+				( $rowArray['timeToParsed']["hour"] - $rowArray['timeFromParsed']["hour"] ) + 
+				( $rowArray['timeToParsed']["minute"] - $rowArray['timeFromParsed']["minute"] ) / 60;
 			$rowArray['day'] = (int)date('N', strtotime($row->TimeFrom));
 			$rowArray['date'] = $row->TimeFrom;
 
@@ -43,7 +48,7 @@ if ($args->command == "getcharges") {
 			array_push($resultArray, $rowArray);
  			//die(print_r($rowArray, 1));
    		}
-		die( 'ok<!--separate-->' . json_encode($resultArray) );
+		die( 'refresh<!--separate-->' . json_encode($resultArray) );
 	}
 
 }
@@ -58,35 +63,6 @@ if ($args->command == "parse") {
 		
 		// list
 
-		case "getcharges":
-			
-
-			$startDate = strtotime('monday this week');
-			$endDate = strtotime('monday next week');
-
-			//die(date('Y-m-d H:i:s', $startDate) . " " .date('Y-m-d H:i:s', $endDate) );
-
-			$str = 'SELECT cc.TimeFrom as TimeFrom,
-				    cc.TimeTo as TimeTo,
-				    p.Name as projectName,
-				    c.Code as clientCode
-					FROM TimeCharges cc
-					INNER JOIN TimeChargeProjects p
-					ON cc.ProjectID = p.ID
-					INNER JOIN TimeChargeClients c
-					ON c.ID = p.ClientID
-					WHERE TimeFrom>= \'' . date('Y-m-d H:i:s', $startDate) . '\' 
-						AND TimeFrom<= \'' . date('Y-m-d H:i:s', $endDate) . '\' 
-				  		AND TimeTo>= \'' . date('Y-m-d H:i:s', $startDate) . '\'
-				  		AND TimeTo<= \'' . date('Y-m-d H:i:s', $endDate) . '\' 
-				  		AND cc.UserID = \'' . $User->ID . '\'';
-
- 			if( $rows = $SqlDatabase->fetchObjects( $str ) )
-			{
-				die( 'list<!--separate-->' . json_encode( $rows ) );
-			}
-			break;	
-
 		case "list":
 
 			switch ($command[1]) {
@@ -95,7 +71,7 @@ if ($args->command == "parse") {
 
 
 					if( $rows = $SqlDatabase->fetchObjects( '
-						SELECT Name, Code
+						SELECT ID, Name, Code
 		                FROM TimeChargeClients
 		                WHERE UserID = \'' . $User->ID . '\'
 					' ) )
@@ -109,11 +85,13 @@ if ($args->command == "parse") {
 					if( $rows = $SqlDatabase->fetchObjects( '
 						SELECT c.Name as Client, 
 							   c.Code as ClientCode,
-							   p.Name as Project
+							   p.Name as Project,
+							   p.ID as ID
 		                FROM TimeChargeProjects p
 		                INNER JOIN TimeChargeClients c
 		                ON p.ClientID = c.ID
 		                WHERE p.UserID = \'' . $User->ID . '\'
+		                ORDER BY c.Name, p.Name
 		            ' ) )
 				    {
 				        die( 'list<!--separate-->' . json_encode( $rows ) );
@@ -127,6 +105,7 @@ if ($args->command == "parse") {
 							   ch.TimeFrom as TimeFrom,
 							   ch.TimeTo as TimeTo,
 							   ch.Status as Status,
+							   ch.ProjectID as ProjectID,
 							   p.Name as Project,
 							   c.Code as ClientCode,
 							   c.Name as Client
@@ -163,23 +142,47 @@ if ($args->command == "parse") {
 			}
 
 			
-			if( !($projectName = $command[2]) ){
-				die('fail<!--separate-->No project name given');
+			if( !($projectID = $command[2]) ){
+				die('fail<!--separate-->No project ID given');
 			}
-
-
-			if( !($clientCode = $command[3]) ){
-				die('fail<!--separate-->No client given');
-			}
-			
 
 
 			// if ok then STAMP create stamp
-
+			
 			$str = "";
 
-			if ( $action == "IN" ){
+			if ( $action == "in" ){
 
+				$str = 		'SELECT c.ID as ID, 
+							   c.TimeFrom as TimeFrom,
+							   p.Name as Project
+		                FROM TimeCharges c
+		                INNER JOIN TimeChargeProjects p
+		                ON c.ProjectID = \'' . $projectID . '\'
+		                WHERE p.UserID = \'' . $User->ID .'\' 
+		                AND c.Status = \'OPEN\'';    
+
+				// check if any open stamps
+				if( $rows = $SqlDatabase->fetchObjects( $str ) )
+				{
+					die( 'list<!--separate--> Open project already exists ' . json_encode( $rows ) );
+				}
+
+				$str = 'INSERT INTO TimeCharges(UserID, TimeFrom, Status, ProjectID)
+						values(\'' . $User->ID . '\',\'' . date('Y-m-d H:i:s') . '\', \'OPEN\', \'' . $projectID . '\')';
+
+				//die($str);
+
+				if( $rows = $SqlDatabase->Query( $str ) )
+				{
+					die( 'ok<!--separate-->Stamped ' . $action . ' on '. $projectID );
+				}
+
+			} 
+
+			
+			if ( $action == "out" ) {
+				
 				$str = 		'SELECT c.ID as ID, 
 							   c.TimeFrom as TimeFrom,
 							   p.Name as Project,
@@ -190,38 +193,30 @@ if ($args->command == "parse") {
 		                INNER JOIN TimeChargeClients cc
 		                ON cc.ID = p.ClientID
 		                WHERE p.UserID = \'' . $User->ID .'\' 
-		                AND c.Status = \'OPEN\'';
-		    
+		                AND c.Status = \'OPEN\' 
+		                AND p.ID = \'' . $projectID . '\'';
 
-				// check if any open stamps
+		    	// check if any open stamps
 				if( $rows = $SqlDatabase->fetchObjects( $str ) )
 				{
-					// if rows > 0 check
-					die( 'list<!--separate--> Open project already exists ' . json_encode( $rows ) );
+						
+					if ( sizeof($rows) == 1)
+					{
+						//die(print_r($rows[0],1));
+						$str = 'UPDATE TimeCharges 
+								SET TimeTo=\'' . date('Y-m-d H:i:s') . '\',
+									Status = \'CLOSED\'
+								WHERE ID=' . $rows[0]->ID;
+						//die($str);
+						if( $rows = $SqlDatabase->Query( $str ) )
+						{
+							die( 'ok<!--separate-->Found open project and stamped ');
+						}
+					}
 				}
-
-				$str = 'INSERT INTO TimeCharges(UserID, TimeFrom, Status, ProjectID)
-						values(\'' . $User->ID . '\',\'' . date('Y-m-d H:i:s') . '\', \'OPEN\',
-						(SELECT ID FROM TimeChargeProjects WHERE Name=\'' . $projectName . '\') ) ';
-			} 
-
-			if ( $action == "OUT" ) {
-
-				$id =  $command[4];
-
-				$str = 'UPDATE TimeCharges set TimeTo=\'' . date('Y-m-d H:i:s') . '\', Status = \'CLOSED\'
-						WHERE ID=' . $id ;
-			}
-
-			//die($str);
-			
-			if( $rows = $SqlDatabase->Query( $str ) )
-			{
-				// if rows > 0 check
-				die( 'ok<!--separate-->Stamped ' . $action . ' on '. $projectName );
+				
 
 			}
-
 
 			break;
 

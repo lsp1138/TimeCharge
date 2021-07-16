@@ -84,10 +84,16 @@
 
 .record {
   background-color: grey;
-  margin: 5px 10px 5px 10px;
+  margin: 1px 7px 1px 7px;
   border-radius: 2px;
   border: thin dashed grey;
   z-index=10;
+}
+
+.daysum {
+  text-align: center;
+  border: none;
+  color: gray;
 }
 
 
