@@ -7,14 +7,16 @@ CREATE TABLE IF NOT EXISTS TimeChargeClients(
     ContactNumber VARCHAR(32),
     Address VARCHAR(255),
     BankDetails VARCHAR(255),
+    HourlyRate DOUBLE(5, 2),
+    Currency VARCHAR(8),
     PRIMARY KEY(ID)
-);
+)
 
 INSERT INTO TimeChargeClients(
     UserID,
     Name,
     Code
-g)
+)
 VALUES
     (1,"OnlineDistributeur", "OD"),
     (1,"HealthPath", "HP"),
@@ -98,4 +100,87 @@ INSERT INTO TimeCharges(
 )
 VALUES
     (1, "2021-07-04 12:00:00", "OPEN", 2);
+
+
+
+CREATE OR REPLACE VIEW TimeChargeView as
+    SELECT
+        c.ID as ChargeID,
+        c.UserID as UserID,
+        c.ProjectID as ProjectID,
+        TimeTo,
+        TimeFrom,
+        round(TIMESTAMPDIFF(SECOND, TimeFrom, TimeTo)/3600, 2) as Hours,
+        Status,
+        p.Name as Project,
+        s.Name as Client,
+        s.HourlyRate as Rate,
+        Convert(round(TIMESTAMPDIFF(SECOND, TimeFrom, TimeTo)/3600, 2) * s.HourlyRate, DECIMAL(10,2)) as Bill,
+        s.Currency as Currency 
+    FROM
+        TimeCharges c
+    INNER JOIN
+        TimeChargeProjects p
+    ON c.ProjectID = p.ID
+    INNER JOIN
+        TimeChargeClients s
+    ON p.ClientID = s.ID
+    ORDER BY TimeFrom ASC;
+Select * from TimeChargeMonthlyView;
+
+
+CREATE OR REPLACE VIEW TimeChargeMonthlyView as
+    SELECT
+        YEAR(TimeTo) as Year,
+        MONTH(TimeTo) as Month,
+        Client,
+        Curren
+        format(sum(Hours),2) as Hours,
+        format(sum(Hours)/8,2) as Days,
+        format(round(sum(Bill),0),0) as Bill
+    FROM
+        TimeChargeView
+    WHERE
+        Hours IS NOT NULL
+    GROUP BY
+        Year,
+        Month,
+        Client,
+        Currency
+
+
+CREATE OR REPLACE VIEW TimeChargeProjectMonthlyView as
+    SELECT
+        Client,
+        YEAR(TimeTo) as Year,
+        MONTH(TimeTo) as Month,
+        Project,
+        Currency,
+        format(sum(Hours),2) as Hours,
+        format(sum(Hours)/8,2) as Days,
+        format(round(sum(Bill),0),0) as Bill
+    FROM
+        TimeChargeView
+    WHERE
+        Hours IS NOT NULL
+    GROUP BY
+        Client,
+        Year,
+        Month,
+        Project,
+        Currency
+    ORDER BY 
+        Client ASC,
+        YEAR ASC,
+        MONTH ASC,
+        Project ASC;
+
+
+
+select * from TimeChargeProjectMonthlyView;
+
+
+
+
+        
 

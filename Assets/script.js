@@ -30,7 +30,6 @@ let colorMap = [[
 
 Application.run = function ( msg ) {
 
-
     // Add key listener for input field
     ge( 'cmdLine' ).addEventListener( 'keydown' , function (event) {
         if ( event.which==13 ) {
@@ -38,46 +37,45 @@ Application.run = function ( msg ) {
             this.value = '';
         }
     });
-
-    // Set date todays date
-    let chosenDate = new Date()
-    setDateBar( chosenDate );
-
-
-
+    
+    initializeDateBar();
+    
     // Initialize default view
     SetTimeColumn( start_hr, end_hr );
-    refreshRecords();
+    refreshRecords( new Date() );
     
 }
 
-// set a project bar 
+function removeElementsByClass(className){
+    let elements = document.getElementsByClassName(className);
+    while(elements.length > 0){
+        elements[0].parentNode.removeChild(elements[0]);
+    }
+}
 
-let refreshRecords = function () {
+// set a project bar
+let refreshRecords = function ( chosenDate ) {
     // get all this weeks (by default) records
     let m = new Module("timecharge");
     m.onExecuted = function (code, data) {
+        removeElementsByClass('record');
+        removeElementsByClass('daysum');
+            
         if ( code=="refresh" ) {
-            // console.log(data);
             jData = JSON.parse(data);
-            //console.log(code, jData);
             let daySum = [
                 0,0,0,0,0,0,0
             ];
             for(let i=0; i < jData.length; i++){
-                //console.log(jData[i].Client, jData[i].Project, jData[i].timeToParsed.hour, jData[i].timeFromParsed.hour);
                 daySum[jData[i].day-1] += jData[i].duration;
-                console.log( jData[i] );
                 PlaceRecord( jData[i], start_hr, 0 );
             }
-
             PlaceSums(daySum);
-
         } else {
             console.log(code, data);
         }
     }
-    m.execute('getcharges');
+    m.execute('getcharges', { "chosenDate" : chosenDate } );
 }
 
 let PlaceSums = function ( daySum ) {
@@ -90,28 +88,58 @@ let PlaceSums = function ( daySum ) {
         div.style['grid-row'] = total_hr * 60 + " / " + total_hr * 60 + 1;
         chart.appendChild(div);
     }
+    
+    div = document.createElement('div');
+    div.classList.add("daysum");
+    let reducer = (accumulator, curr) => accumulator + curr;
+    div.innerHTML = daySum.reduce( ( cum, val ) => {
+        return cum + val
+    }, 0).toFixed(1);
+    div.style['grid-column'] = "10 / 11";
+    div.style['grid-row'] = total_hr * 60 + " / " + total_hr * 60 + 1;
+    chart.appendChild(div);
+
+
 }
 
 
-let setDateBar = function( chargeDate, shiftDays=0 ) {
-    
-    let dateStr = chargeDate.toLocaleDateString('en-NO', {
+let initializeDateBar = function() {
+    let chosenDate = new Date();
+    let dateStr = chosenDate.toLocaleDateString('en-NO', {
         weekday: 'short', // "Sat"
         month: 'short', // "June"
         day: '2-digit', // "01"
         year: 'numeric' // "2019"
     });
-    
     //console.log(dateStr);
-
-    ge( 'dateBar' ).innerHTML = "<span onClick='shiftWeek(-1)'> <b><<</b> </span>" + 
-        dateStr + "<span onClick='shiftWeek(+1)'> <b>>></b> </span>";
+    ge( 'dateBar' ).innerHTML = "<span onClick='updateDateBar(-7)'><b><<</b> </span><span id=\"dateStr\">" + dateStr + "</span><span onClick='updateDateBar(+7)'> <b>>></b> </span>";
 
 }
 
-let shiftWeek = function( shift ) {
-    console.log("shitweek");
+
+let updateDateBar = function(shiftDays) {
+      
+    let dStr = ge('dateStr').innerHTML;
+        console.log(dStr);
+
+    let chosenDate = new Date(dStr);
+
+    chosenDate = new Date(chosenDate.setDate(chosenDate.getDate() + shiftDays));
+
+    let dateStr = chosenDate.toLocaleDateString('en-NO', {
+        weekday: 'short', // "Sat"
+        month: 'short', // "June"
+        day: '2-digit', // "01"
+        year: 'numeric' // "2019"
+    });
+
+    ge( 'dateBar' ).innerHTML = "<span onClick='updateDateBar(-7)'><b><<</b> </span><span id=\"dateStr\">" + dateStr + "</span><span onClick='updateDateBar(+7)'> <b>>></b> </span>";
+
+    refreshRecords( chosenDate );
+
 }
+
+
 
 let parseCommand = function ( str ) {
     let args = str.split(" ");
@@ -127,7 +155,7 @@ let parseCommand = function ( str ) {
             ge( 'output' ).appendChild(
                 generateTable( JSON.parse(data) )
             );
-            refreshRecords();
+            updateDateBar(0);
         } else if (code=="refresh") {
             console.log("in refreshSchedule");
             //console.log(data);

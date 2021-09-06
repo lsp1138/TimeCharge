@@ -6,10 +6,14 @@ require( 'php/friend.php' );
 
 if ($args->command == "getcharges") {
 	
+	$startDate = strtotime(
+		'monday this week', strtotime($args->args->chosenDate)
+	);
 
-	$startDate = strtotime('monday this week');
-	$endDate = strtotime('monday next week');
-
+	$endDate = strtotime(
+		'monday next week', strtotime($args->args->chosenDate)
+	);
+	
 	//die(date('Y-m-d H:i:s', $startDate) . " " .date('Y-m-d H:i:s', $endDate) );
 
 	$str = 'SELECT cc.TimeFrom as TimeFrom,
